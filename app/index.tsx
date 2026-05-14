@@ -1,10 +1,10 @@
 import React from "react";
 import {
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 // useRouter, Expo Router'da sayfalar arası geçişi sağlar
 import { useRouter } from "expo-router";

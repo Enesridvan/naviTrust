@@ -1,23 +1,74 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { router } from 'expo-router';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, } from "firebase/firestore";
+import { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { auth, db } from '../firebase.config';
 
-export default function RegisterScreen() {
-  const router = useRouter();
-  const [isim, setIsim] = useState("");
-  const [soyisim, setSoyisim] = useState("");
-  const [email, setEmail] = useState("");
-  const [sifre, setSifre] = useState("");
+const registerScreen = () => {
+
+  const [isim, setIsim] = useState('');
+  const [soyisim, setSoyisim] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  
+
+  const handleSave = async () => {
+
+    if (isim === '' || soyisim === '' || email === '' || password === '') {
+      Alert.alert("Hata", "Lütfen tüm alanları doldurunuz.");
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "users", user.uid), {
+        ad: isim,
+        soyad: soyisim,
+        email: email,
+        rol: "user",
+        fcmToken: ""
+      });
+
+      Alert.alert("Başarılı", "Kayıt tamamlandı, giriş yapıldı!");
+      
+      setIsim('');
+      setSoyisim('');
+    
+      setEmail('');
+      setPassword('');
+      Keyboard.dismiss();
+
+      router.replace ('./login')
+
+    } catch (error: any) {
+      console.error(error);
+      let errorMessage = "Bir sorun oluştu: " + error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Bu e-posta adresi zaten kullanımda.";
+      }
+      if (error.code === 'auth/weak-password') {
+        errorMessage = "Şifre en az 6 karakter olmalıdır.";
+      }
+      Alert.alert("Kayıt Hatası", errorMessage);
+    }
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,14 +118,14 @@ export default function RegisterScreen() {
             <Text style={styles.label}>Şifre</Text>
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
+              placeholder="********"
               placeholderTextColor="#A0A0A0"
-              value={sifre}
-              onChangeText={setSifre}
+              value={password}
+              onChangeText={setPassword}
               secureTextEntry
             />
 
-            <TouchableOpacity style={styles.registerButton}>
+            <TouchableOpacity style={styles.registerButton} onPress={handleSave}>
               <Text style={styles.registerButtonText}>Kayıt Ol</Text>
             </TouchableOpacity>
 
@@ -137,3 +188,4 @@ const styles = StyleSheet.create({
   loginText: { fontSize: 15, color: "#555555" },
   loginLink: { fontSize: 15, fontWeight: "bold", color: "#000000" },
 });
+export default registerScreen;

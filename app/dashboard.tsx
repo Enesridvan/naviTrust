@@ -1,17 +1,44 @@
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import { doc, getDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import {
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { auth, db } from "../firebase.config";
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const [userName, setUserName] = useState("Kullanıcı");
+
+  
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserName(data.ad || "Kullanıcı"); 
+          }
+        } catch (error) {
+          console.error("Kullanıcı verisi çekilirken hata oluştu:", error);
+        }
+      } else {
+        router.replace("/login");
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Üst Kısım */}
@@ -27,17 +54,17 @@ export default function DashboardScreen() {
         >
           {/* Karşılama ve Şehir Seçimi */}
           <View style={styles.welcomeRow}>
-            <Text style={styles.welcomeText}>Hoşgeldin Kullanıcı</Text>
+            <Text style={styles.welcomeText}>Hoşgeldin {userName}</Text>
             <View style={styles.cityBadge}>
               <Ionicons name="location-sharp" size={16} color="#333" />
               <Text style={styles.cityText}>Şehir</Text>
             </View>
           </View>
 
-          {/* Ana Buton: Yolculuğa Başla (Sadece aksiyon tetikleyecek) */}
+          {/* Ana Buton: Yolculuğa Başla */}
           <TouchableOpacity
             style={styles.mainButton}
-            onPress={() => alert("Sensörler dinlenmeye başlanacak...")} // <-- YÖNLENDİRMEYİ BURADAN KALDIRDIK
+            onPress={() => Alert.alert("Bilgi", "Sensörler dinlenmeye başlanacak...")}
           >
             <FontAwesome5
               name="route"
@@ -80,14 +107,12 @@ export default function DashboardScreen() {
 
         {/* Alt Navigasyon Çubuğu */}
         <View style={styles.bottomNav}>
-          {/* 1. ANA SAYFA (Zaten buradayız, ikon aktif) */}
           <TouchableOpacity style={styles.navItem}>
             <View style={styles.activeNavCircle}>
               <Ionicons name="home" size={24} color="#000" />
             </View>
           </TouchableOpacity>
 
-          {/* 2. HARİTA İKONU (map.tsx'e gider) */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => router.push("/map")}
@@ -95,7 +120,6 @@ export default function DashboardScreen() {
             <Ionicons name="map-outline" size={28} color="#A0A0A0" />
           </TouchableOpacity>
 
-          {/* 3. PROFİL İKONU (profile.tsx'e gider) */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => router.push("/profile")}
@@ -184,11 +208,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderTopWidth: 1,
     borderColor: "#E0E0E0",
-    paddingBottom: 25, // iOS için ekstra alt boşluk
+    paddingBottom: 25,
   },
   navItem: { flex: 1, alignItems: "center" },
   activeNavCircle: {
-    backgroundColor: "#E8C500", // Koyu sarı
+    backgroundColor: "#E8C500",
     width: 50,
     height: 50,
     borderRadius: 25,

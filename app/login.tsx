@@ -1,20 +1,70 @@
-import { useRouter } from "expo-router"; // Expo Router yönlendirme aracı
+import { auth } from "@/firebase.config";
+import { router } from "expo-router";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-export default function LoginScreen() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const loginScreen= () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); 
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const signIn = async () => {
+    try{
+      const user = await signInWithEmailAndPassword(auth, email, password)
+      if(user) router.replace('/dashboard')
+    }
+    catch (error: any){
+      console.log(error)
+      Alert.alert('Giriş Başarısız', error.message);
+    }
+  }
+
+  const resetPassword = async () => {
+    if (!email) {
+      Alert.alert("Eksik Bilgi", "Şifre sıfırlama bağlantısı göndermek için lütfen e-posta alanını doldurunuz.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert("Geçersiz Format", "Lütfen geçerli bir e-posta adresi giriniz.");
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert(
+        "Başarılı", 
+        "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen spam kutunuzu da kontrol ediniz."
+      );
+    } catch (error: any) {
+      console.log("Reset Error:", error);
+      let errorMessage = "Bir hata oluştu.";
+
+      if (error.code === 'auth/user-not-found') errorMessage = "Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.";
+      if (error.code === 'auth/invalid-email') errorMessage = "E-posta adresi formatı geçersiz.";
+      if (error.code === 'auth/too-many-requests') errorMessage = "Çok fazla deneme yaptınız. Lütfen bir süre bekleyip tekrar deneyin.";
+
+      Alert.alert("Hata", errorMessage);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -45,20 +95,21 @@ export default function LoginScreen() {
           <Text style={styles.label}>Şifre</Text>
           <TextInput
             style={styles.input}
-            placeholder="••••••••"
+            placeholder="********"
             placeholderTextColor="#A0A0A0"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
 
-          <TouchableOpacity style={styles.forgotPasswordContainer}>
+          <TouchableOpacity style={styles.forgotPasswordContainer}
+            onPress={resetPassword}
+            disabled={resetLoading}>
             <Text style={styles.forgotPasswordText}>Şifremi unuttum?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push("/dashboard")}
+            style={styles.loginButton} onPress={signIn}
           >
             <Text style={styles.loginButtonText}>Giriş Yap</Text>
           </TouchableOpacity>
@@ -131,3 +182,4 @@ const styles = StyleSheet.create({
   registerText: { fontSize: 15, color: "#555555" },
   registerLink: { fontSize: 15, fontWeight: "bold", color: "#000000" },
 });
+export default loginScreen;
